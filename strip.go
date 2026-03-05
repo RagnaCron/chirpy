@@ -1,26 +1,22 @@
 package main
 
 import (
-	"slices"
 	"strings"
 )
 
-var keywords = []string{
-	"kerfuffle",
-	"sharbert",
-	"fornax",
+var badKeyWords = map[string]struct{}{
+	"kerfuffle": {},
+	"sharbert":  {},
+	"fornax":    {},
 }
 
-func stripKeywords(body string, keys []string) string {
+func stripKeywords(body string, keys map[string]struct{}) string {
 	words := strings.Split(body, " ")
-	values := make([]string, 0, len(words))
-	for _, word := range words {
-		if slices.Contains(keys, strings.ToLower(word)) {
-			values = append(values, "****")
-		} else {
-			values = append(values, word)
+	for i, word := range words {
+		if _, ok := keys[strings.ToLower(word)]; ok {
+			words[i] = "****"
 		}
 	}
 
-	return strings.Join(values, " ")
+	return strings.Join(words, " ")
 }

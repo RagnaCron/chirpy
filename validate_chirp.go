@@ -27,7 +27,7 @@ func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sanitized := stripKeywords(params.Body, keywords)
+	sanitized := stripKeywords(params.Body, badKeyWords)
 
 	respondWithJSON(w, http.StatusOK, returnVals{
 		Cleaned: sanitized,
