@@ -16,6 +16,7 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
+	platform       string
 }
 
 func main() {
@@ -24,6 +25,8 @@ func main() {
 	if dbURL == "" {
 		log.Fatalln("DB_URL must be set")
 	}
+
+	dev := os.Getenv("PLATFORM")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -36,6 +39,7 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		db:             database.New(db),
+		platform:       dev,
 	}
 
 	mux := http.NewServeMux()
