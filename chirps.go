@@ -9,17 +9,18 @@ import (
 	"github.com/ragnacron/chirpy/internal/database"
 )
 
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UserID    uuid.UUID `json:"user_id"`
+	Body      string    `json:"body"`
+}
+
 func (cfg *apiConfig) chripsHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body   string    `json:"body"`
 		UserID uuid.UUID `json:"user_id"`
-	}
-	type returnVals struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Body      string    `json:"body"`
-		UserID    uuid.UUID `json:"user_id"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -43,10 +44,10 @@ func (cfg *apiConfig) chripsHandler(w http.ResponseWriter, r *http.Request) {
 		UserID: params.UserID,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Couldnl't create chrip", err)
+		respondWithError(w, http.StatusInternalServerError, "Couldnl't create chrip", err)
 	}
 
-	respondWithJSON(w, 201, returnVals{
+	respondWithJSON(w, http.StatusCreated, Chirp{
 		ID:        chirp.ID,
 		CreatedAt: chirp.CreatedAt,
 		UpdatedAt: chirp.UpdatedAt,

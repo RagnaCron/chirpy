@@ -12,7 +12,7 @@ func (cfg *apiConfig) resetHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := cfg.db.DeleteUsers(r.Context())
 	if err != nil {
-		respondWithError(w, 500, "", err)
+		respondWithError(w, http.StatusInternalServerError, "", err)
 	}
 
 	w.WriteHeader(http.StatusOK)

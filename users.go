@@ -30,7 +30,7 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 
 	user, err := cfg.db.CreateUser(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, 400, "Couldn't create user", err)
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 	}
 
 	rVal := User{
@@ -40,5 +40,5 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		Email:     user.Email,
 	}
 
-	respondWithJSON(w, 201, rVal)
+	respondWithJSON(w, http.StatusCreated, rVal)
 }
