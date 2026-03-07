@@ -44,7 +44,8 @@ func (cfg *apiConfig) chripsHandler(w http.ResponseWriter, r *http.Request) {
 		UserID: params.UserID,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldnl't create chrip", err)
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create chrip", err)
+		return
 	}
 
 	respondWithJSON(w, http.StatusCreated, Chirp{
@@ -54,4 +55,25 @@ func (cfg *apiConfig) chripsHandler(w http.ResponseWriter, r *http.Request) {
 		Body:      chirp.Body,
 		UserID:    chirp.UserID,
 	})
+}
+
+func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
+	chirpsD, err := cfg.db.GetChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
+		return
+	}
+
+	chirps := make([]Chirp, 0, len(chirpsD))
+	for _, chirp := range chirpsD {
+		chirps = append(chirps, Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+			UserID:    chirp.UserID,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, chirps)
 }
