@@ -80,13 +80,9 @@ func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) getChirpByIDHandler(w http.ResponseWriter, r *http.Request) {
 	chirpIDString := r.PathValue("chirpID")
-	// if chirpID == "" {
-	// 	respondWithError(w, http.StatusNotFound, "Couldn't find chirp", nil)
-	// 	return
-	// }
 	chirpID, err := uuid.Parse(chirpIDString)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Couldn't read chirp id", err)
+		respondWithError(w, http.StatusBadRequest, "Invalid chirp ID", err)
 	}
 
 	chirp, err := cfg.db.GetChirpById(r.Context(), chirpID)
