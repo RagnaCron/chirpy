@@ -72,7 +72,7 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	match, err := auth.CheckPassword(params.Password, user.HashedPassword)
+	match, err := auth.CheckPasswordHash(params.Password, user.HashedPassword)
 	if err != nil || !match {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
 		return
