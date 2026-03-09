@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -23,32 +24,30 @@ func (cfg *apiConfig) createChripHandler(w http.ResponseWriter, r *http.Request)
 		Body string `json:"body"`
 	}
 
+	tokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT", err)
+		return
+	}
+	userID, err := auth.ValidateJWT(tokenString, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT", err)
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
-	tokenString, err := auth.GetBearerToken(r.Header)
+	sanitized, err := validateChirp(params.Body)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "1Unauthorized access", err)
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	userID, err := auth.ValidateJWT(tokenString, cfg.secret)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "2Unauthorized access", err)
-		return
-	}
-
-	const maxChirpLength = 140
-	if len(params.Body) > maxChirpLength {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
-		return
-	}
-
-	sanitized := stripKeywords(params.Body, badKeyWords)
 
 	chirp, err := cfg.db.CreateChrip(r.Context(), database.CreateChripParams{
 		Body:   sanitized,
@@ -66,6 +65,16 @@ func (cfg *apiConfig) createChripHandler(w http.ResponseWriter, r *http.Request)
 		Body:      chirp.Body,
 		UserID:    chirp.UserID,
 	})
+}
+
+func validateChirp(body string) (string, error) {
+	const maxChirpLength = 140
+	if len(body) > maxChirpLength {
+		return "", errors.New("Chirp is too long")
+	}
+
+	cleaned := stripKeywords(body, badKeyWords)
+	return cleaned, nil
 }
 
 func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
