@@ -26,12 +26,13 @@ func main() {
 	if dbURL == "" {
 		log.Fatalln("DB_URL must be set")
 	}
-
 	dev := os.Getenv("PLATFORM")
-
+	if dev == "" {
+		log.Fatalln("PLATFORM must be set")
+	}
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		log.Fatalln("JWT_SECRET has to be set in the .env file")
+		log.Fatalln("JWT_SECRET environment variable is not set")
 	}
 
 	db, err := sql.Open("postgres", dbURL)
