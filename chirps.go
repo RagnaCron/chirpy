@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ragnacron/chirpy/internal/auth"
 	"github.com/ragnacron/chirpy/internal/database"
 )
 
@@ -17,10 +18,9 @@ type Chirp struct {
 	Body      string    `json:"body"`
 }
 
-func (cfg *apiConfig) chripsHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) createChripHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -28,6 +28,17 @@ func (cfg *apiConfig) chripsHandler(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	tokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "1Unauthorized access", err)
+		return
+	}
+	userID, err := auth.ValidateJWT(tokenString, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "2Unauthorized access", err)
 		return
 	}
 
@@ -41,7 +52,7 @@ func (cfg *apiConfig) chripsHandler(w http.ResponseWriter, r *http.Request) {
 
 	chirp, err := cfg.db.CreateChrip(r.Context(), database.CreateChripParams{
 		Body:   sanitized,
-		UserID: params.UserID,
+		UserID: userID,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chrip", err)

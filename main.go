@@ -17,6 +17,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	secret         string
 }
 
 func main() {
@@ -27,6 +28,11 @@ func main() {
 	}
 
 	dev := os.Getenv("PLATFORM")
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		log.Fatalln("JWT_SECRET has to be set in the .env file")
+	}
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -40,6 +46,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db:             database.New(db),
 		platform:       dev,
+		secret:         secret,
 	}
 
 	mux := http.NewServeMux()
@@ -50,7 +57,7 @@ func main() {
 
 	mux.HandleFunc("GET /api/chirps", apiCfg.getChripsHandler)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getChirpByIDHandler)
-	mux.HandleFunc("POST /api/chirps", apiCfg.chripsHandler)
+	mux.HandleFunc("POST /api/chirps", apiCfg.createChripHandler)
 
 	mux.HandleFunc("POST /api/login", apiCfg.loginUserHandler)
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)

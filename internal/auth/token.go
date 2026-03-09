@@ -14,7 +14,6 @@ import (
 type TokenType string
 
 const (
-	// TokenTypeAccess -
 	TokenTypeAccess TokenType = "chirpy-access"
 )
 
@@ -63,12 +62,10 @@ func GetBearerToken(headers http.Header) (string, error) {
 		return "", errors.New("Not Authorized")
 	}
 
-	token, ok := strings.CutPrefix(authorization, "Bearer ")
+	tokenString, ok := strings.CutPrefix(authorization, "Bearer ")
 	if !ok {
 		return "", errors.New("Not Authorized")
 	}
 
-	return token, nil
-
-	return "", nil
+	return tokenString, nil
 }
