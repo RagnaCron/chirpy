@@ -17,6 +17,8 @@ const (
 	TokenTypeAccess TokenType = "chirpy-access"
 )
 
+var ErrNoAuthHeader = errors.New("No auth header included in request")
+
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 	signingKey := []byte(tokenSecret)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
@@ -59,12 +61,12 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 func GetBearerToken(headers http.Header) (string, error) {
 	authorization := headers.Get("Authorization")
 	if authorization == "" {
-		return "", errors.New("Not Authorized")
+		return "", ErrNoAuthHeader
 	}
 
 	tokenString, ok := strings.CutPrefix(authorization, "Bearer ")
 	if !ok {
-		return "", errors.New("Not Authorized")
+		return "", errors.New("Malformed authorization header")
 	}
 
 	return tokenString, nil
