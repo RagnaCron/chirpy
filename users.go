@@ -15,7 +15,6 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
-	Token     string    `json:"token"`
 }
 
 func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,16 +59,18 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 		ExpiresIn int32  `json:"expires_in_seconds"`
 	}
 
+	type response struct {
+		User
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
-	}
-
-	if params.ExpiresIn <= 0 || params.ExpiresIn > 3600 {
-		params.ExpiresIn = 3600
 	}
 
 	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
@@ -84,17 +85,24 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Duration(params.ExpiresIn*int32(time.Second)))
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "JWT Token can not be generated", err)
+	expirationTime := time.Hour
+	if params.ExpiresIn > 0 || params.ExpiresIn < 3600 {
+		expirationTime = time.Duration(params.ExpiresIn) * time.Second
 	}
 
-	rVal := User{
-		Id:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		Token:     token,
+	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Duration(expirationTime))
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't create access JWT", err)
+	}
+
+	rVal := response{
+		User: User{
+			Id:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
+		Token: token,
 	}
 
 	respondWithJSON(w, http.StatusOK, rVal)
