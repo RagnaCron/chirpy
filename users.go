@@ -54,9 +54,8 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 
 func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email     string `json:"email"`
-		Password  string `json:"password"`
-		ExpiresIn int32  `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	type response struct {
@@ -85,14 +84,21 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Hour
-	if params.ExpiresIn > 0 || params.ExpiresIn < 3600 {
-		expirationTime = time.Duration(params.ExpiresIn) * time.Second
-	}
-
-	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Duration(expirationTime))
+	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Duration(time.Hour))
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Couldn't create access JWT", err)
+		return
+	}
+
+	refresh_token := auth.MakeRefreshToken()
+	err = cfg.db.SaveRefreshToken(r.Context(), database.SaveRefreshTokenParams{
+		Token:     refresh_token,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().UTC().Add(time.Duration(time.Now().UTC().Day() * 60)),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't create refresh token", err)
+		return
 	}
 
 	rVal := response{
@@ -102,7 +108,8 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token: token,
+		Token:        token,
+		RefreshToken: refresh_token,
 	}
 
 	respondWithJSON(w, http.StatusOK, rVal)
