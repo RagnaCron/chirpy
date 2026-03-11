@@ -77,8 +77,30 @@ func validateChirp(body string) (string, error) {
 	return cleaned, nil
 }
 
+func userIDFromRequest(r *http.Request) (uuid.UUID, error) {
+	authorIDString := r.URL.Query().Get("author_id")
+	if authorIDString == "" {
+		return uuid.Nil, nil
+	}
+	authorID, err := uuid.Parse(authorIDString)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return authorID, nil
+}
+
 func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
-	authorID := r.URL.Query().Get("author_id")
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid author ID", err)
+		return
+	}
+
+	var chirpsD []database.Chirp
+
+	if userID != uuid.Nil {
+		chirpsD, err = 
+	}
 	if authorID != "" {
 		userID, err := uuid.Parse(authorID)
 		if err != nil {
