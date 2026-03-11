@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -89,6 +90,14 @@ func userIDFromRequest(r *http.Request) (uuid.UUID, error) {
 	return authorID, nil
 }
 
+func sortFromRequest(r *http.Request) string {
+	filter := r.URL.Query().Get("sort")
+	if filter != "desc" {
+		filter = "asc"
+	}
+	return filter
+}
+
 func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := userIDFromRequest(r)
 	if err != nil {
@@ -110,6 +119,18 @@ func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
 
 	chirps := mapChirps(chirpsD)
 
+	sortFilter := sortFromRequest(r)
+
+	if sortFilter == "asc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+		})
+	} else {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[j].CreatedAt.Before(chirps[i].CreatedAt)
+		})
+	}
+
 	respondWithJSON(w, http.StatusOK, chirps)
 }
 
@@ -125,7 +146,6 @@ func mapChirps(chirpsD []database.Chirp) []Chirp {
 		})
 	}
 	return chirps
-
 }
 
 func (cfg *apiConfig) getChirpByIDHandler(w http.ResponseWriter, r *http.Request) {
