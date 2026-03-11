@@ -78,12 +78,32 @@ func validateChirp(body string) (string, error) {
 }
 
 func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
-	chirpsD, err := cfg.db.GetChirps(r.Context())
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
-		return
+	authorID := r.URL.Query().Get("author_id")
+	if authorID != "" {
+		userID, err := uuid.Parse(authorID)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Couldn't parse author_id", err)
+			return
+		}
+		chirpsD, err := cfg.db.GetChirpsByUserID(r.Context(), userID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
+			return
+		}
+		chirps := mapChirps(chirpsD)
+		respondWithJSON(w, http.StatusOK, chirps)
+	} else {
+		chirpsD, err := cfg.db.GetChirps(r.Context())
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
+			return
+		}
+		chirps := mapChirps(chirpsD)
+		respondWithJSON(w, http.StatusOK, chirps)
 	}
+}
 
+func mapChirps(chirpsD []database.Chirp) []Chirp {
 	chirps := make([]Chirp, 0, len(chirpsD))
 	for _, chirp := range chirpsD {
 		chirps = append(chirps, Chirp{
@@ -94,8 +114,8 @@ func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
 			UserID:    chirp.UserID,
 		})
 	}
+	return chirps
 
-	respondWithJSON(w, http.StatusOK, chirps)
 }
 
 func (cfg *apiConfig) getChirpByIDHandler(w http.ResponseWriter, r *http.Request) {
