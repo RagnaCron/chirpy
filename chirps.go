@@ -99,30 +99,18 @@ func (cfg *apiConfig) getChripsHandler(w http.ResponseWriter, r *http.Request) {
 	var chirpsD []database.Chirp
 
 	if userID != uuid.Nil {
-		chirpsD, err = 
-	}
-	if authorID != "" {
-		userID, err := uuid.Parse(authorID)
-		if err != nil {
-			respondWithError(w, http.StatusBadRequest, "Couldn't parse author_id", err)
-			return
-		}
-		chirpsD, err := cfg.db.GetChirpsByUserID(r.Context(), userID)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
-			return
-		}
-		chirps := mapChirps(chirpsD)
-		respondWithJSON(w, http.StatusOK, chirps)
+		chirpsD, err = cfg.db.GetChirpsByUserID(r.Context(), userID)
 	} else {
-		chirpsD, err := cfg.db.GetChirps(r.Context())
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
-			return
-		}
-		chirps := mapChirps(chirpsD)
-		respondWithJSON(w, http.StatusOK, chirps)
+		chirpsD, err = cfg.db.GetChirps(r.Context())
 	}
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps", err)
+		return
+	}
+
+	chirps := mapChirps(chirpsD)
+
+	respondWithJSON(w, http.StatusOK, chirps)
 }
 
 func mapChirps(chirpsD []database.Chirp) []Chirp {
